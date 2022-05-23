@@ -29,6 +29,11 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
         if Gst.ElementFactory.find("nvv4l2h264enc"):
             # nvaccelerated option exists
             h264enc = Gst.ElementFactory.make("nvv4l2h264enc")
+            h264enc.set_property("insert-sps-pps", 1)
+            h264enc.set_property("maxperf-enable", 1)
+            h264enc.set_property("bitrate", 500000)
+            h264enc.set_property("preset-level", 3)
+            h264enc.set_property("iframeinterval", framerate)
             videorate = Gst.ElementFactory.make("videorate")
             nvvidconv = Gst.ElementFactory.make("nvvidconv")
             rtph264pay = Gst.ElementFactory.make("rtph264pay")
