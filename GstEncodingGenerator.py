@@ -28,6 +28,7 @@ class GstEncodingGenerator():
 
             if width[0] and height[0]:
                 res = (width.value, height.value)
+                print(res)
                 if res not in resolutions:
                     resolutions.append(res)
 
