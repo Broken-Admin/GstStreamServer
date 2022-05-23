@@ -12,6 +12,7 @@ class Camera:
     def generate_source(self):
         source = Gst.ElementFactory.make("v4l2src")
         source.set_property("device", self.path)
+        source.set_property("io-mode", 4)
 
         return source
 
