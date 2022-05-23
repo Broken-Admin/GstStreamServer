@@ -9,16 +9,9 @@ class GstRawH264EncodingGenerator(GstEncodingGenerator):
         # get jpegs, filter to correct resolution
         source_caps = Gst.Caps.new_empty()
         source_structure = Gst.Structure.new_from_string(
-            f"video/x-h264,width=(int){resolution[0]},height=(int){resolution[1]}"
+            f"video/x-h264,width=(int){resolution[0]},height=(int){resolution[1]},framerate={framerate}/1"
         )
         source_caps.append_structure(source_structure)
-
-        # filter to tell videorate element what framerate to generate
-        rate_caps = Gst.Caps.new_empty()
-        rate_structure = Gst.Structure.new_from_string(
-            f"video/x-h264,framerate={framerate}/1"
-        )
-        rate_caps.append_structure(rate_structure)
 
         rtp_caps = Gst.Caps.new_empty()
         rtp_structure = Gst.Structure.new_from_string(
@@ -26,20 +19,16 @@ class GstRawH264EncodingGenerator(GstEncodingGenerator):
         )
         rtp_caps.append_structure(rtp_structure)
 
-        videorate = Gst.ElementFactory.make("videorate")
         rtph264pay = Gst.ElementFactory.make("rtph264pay")
         pipeline = Gst.Pipeline.new("raw_h264_stream")
 
         # add all elements to the pipeline
-        for element in [source, videorate, rtph264pay, sink]:
+        for element in [source, rtph264pay, sink]:
             pipeline.add(element)
 
         # filter and link elements
-        if not source.link_filtered(videorate, source_caps):
+        if not source.link_filtered(rtph264pay, source_caps):
             print(f"Unable to link source to video/x-h264,width=(int){resolution[0]},height=(int){resolution[1]}")   
-            return False, None
-        if not videorate.link_filtered(rtph264pay, rate_caps):
-            print("Unable to convert video/x-h264 to video/x-h264 for stream.")
             return False, None
         if not rtph264pay.link_filtered(sink, rtp_caps):
             print("Unable to link rtph264pay to sink for h264 stream")
@@ -49,8 +38,7 @@ class GstRawH264EncodingGenerator(GstEncodingGenerator):
 
     @classmethod
     def get_framerates(cls, caps):
-        # 5 fps to 30 fps in increments of 5
-        return [5 + 5*i for i in range(6)]
+        return [30]
 
     @staticmethod
     def get_encoding_name():
