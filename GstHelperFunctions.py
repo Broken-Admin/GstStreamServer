@@ -5,7 +5,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GObject, GLib
 
 import Camera
-import GstEncodingGenerator, GstMjpegEncodingGenerator, GstRawMjpegEncodingGenerator
+import GstEncodingGenerator, GstRawMjpegEncodingGenerator, GstMjpegEncodingGenerator, GstRawH264EncodingGenerator
 
 def __get_devices():
     monitor = Gst.DeviceMonitor.new()

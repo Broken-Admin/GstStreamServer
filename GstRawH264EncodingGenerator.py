@@ -1,48 +1,48 @@
 from GstEncodingGenerator import *
 
-class GstRawMjpegEncodingGenerator(GstEncodingGenerator):
-    source_encoding = "image/jpeg"
-    sink_encoding = "image/jpeg"
+class GstRawH264EncodingGenerator(GstEncodingGenerator):
+    source_encoding = "video/x-h264"
+    sink_encoding = "video/x-h264"
 
     @staticmethod
     def generate_pipeline(source, sink, resolution, framerate):
         # get jpegs, filter to correct resolution
         source_caps = Gst.Caps.new_empty()
         source_structure = Gst.Structure.new_from_string(
-            f"image/jpeg,width=(int){resolution[0]},height=(int){resolution[1]}"
+            f"video/x-h264,width=(int){resolution[0]},height=(int){resolution[1]}"
         )
         source_caps.append_structure(source_structure)
 
         # filter to tell videorate element what framerate to generate
         rate_caps = Gst.Caps.new_empty()
         rate_structure = Gst.Structure.new_from_string(
-            f"image/jpeg,framerate={framerate}/1"
+            f"video/x-h264,framerate={framerate}/1"
         )
         rate_caps.append_structure(rate_structure)
 
         rtp_caps = Gst.Caps.new_empty()
         rtp_structure = Gst.Structure.new_from_string(
-            "application/x-rtp,encoding=JPEG,payload=26"
+            "application/x-rtp,encoding=H264,payload=[26,127]"
         )
         rtp_caps.append_structure(rtp_structure)
 
         videorate = Gst.ElementFactory.make("videorate")
-        rtpjpegpay = Gst.ElementFactory.make("rtpjpegpay")
-        pipeline = Gst.Pipeline.new("mjpeg_stream")
+        rtph264pay = Gst.ElementFactory.make("rtph264pay")
+        pipeline = Gst.Pipeline.new("raw_h264_stream")
 
         # add all elements to the pipeline
-        for element in [source, videorate, rtpjpegpay, sink]:
+        for element in [source, videorate, rtph264pay, sink]:
             pipeline.add(element)
 
         # filter and link elements
         if not source.link_filtered(videorate, source_caps):
-            print(f"Unable to link source to image/jpeg,width=(int){resolution[0]},height=(int){resolution[1]}")   
+            print(f"Unable to link source to video/x-h264,width=(int){resolution[0]},height=(int){resolution[1]}")   
             return False, None
-        if not videorate.link_filtered(rtpjpegpay, rate_caps):
-            print(f"Unable to link videorate to rtpjpegpay for mjpeg stream")
+        if not videorate.link_filtered(rtph264pay, rate_caps):
+            print("Unable to convert video/x-h264 to video/x-h264 for stream.")
             return False, None
-        if not rtpjpegpay.link_filtered(sink, rtp_caps):
-            print("Unable to link rtpjpegpay to sink for mjpeg stream")
+        if not rtph264pay.link_filtered(sink, rtp_caps):
+            print("Unable to link rtph264pay to sink for h264 stream")
             return False, None
         
         return True, pipeline
@@ -54,4 +54,4 @@ class GstRawMjpegEncodingGenerator(GstEncodingGenerator):
 
     @staticmethod
     def get_encoding_name():
-        return "mjpeg"
+        return "raw_h264"

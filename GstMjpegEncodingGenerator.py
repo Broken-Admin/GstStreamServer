@@ -1,7 +1,7 @@
 from GstEncodingGenerator import *
 
 class GstMjpegEncodingGenerator(GstEncodingGenerator):
-    source_encoding = "image/jpeg"
+    source_encoding = "video/x-raw"
     sink_encoding = "image/jpeg"
 
     @staticmethod
@@ -9,14 +9,14 @@ class GstMjpegEncodingGenerator(GstEncodingGenerator):
         # get jpegs, filter to correct resolution
         source_caps = Gst.Caps.new_empty()
         source_structure = Gst.Structure.new_from_string(
-            f"image/jpeg,width=(int){resolution[0]},height=(int){resolution[1]}"
+            f"video/x-raw,width=(int){resolution[0]},height=(int){resolution[1]}"
         )
         source_caps.append_structure(source_structure)
 
         # filter to tell videorate element what framerate to generate
         rate_caps = Gst.Caps.new_empty()
         rate_structure = Gst.Structure.new_from_string(
-            f"image/jpeg,framerate={framerate}/1"
+            f"video/x-raw,framerate={framerate}/1"
         )
         rate_caps.append_structure(rate_structure)
 
@@ -26,20 +26,29 @@ class GstMjpegEncodingGenerator(GstEncodingGenerator):
         )
         rtp_caps.append_structure(rtp_structure)
 
+        if Gst.ElementFactory.find("nvjpegenc"):
+            # nvaccelerated option exists
+            jpegenc = Gst.ElementFactory.make("nvjpegenc")
+        else:
+            jpegenc = Gst.ElementFactory.make("jpegenc")
+
         videorate = Gst.ElementFactory.make("videorate")
         rtpjpegpay = Gst.ElementFactory.make("rtpjpegpay")
         pipeline = Gst.Pipeline.new("mjpeg_stream")
 
         # add all elements to the pipeline
-        for element in [source, videorate, rtpjpegpay, sink]:
+        for element in [source, videorate, jpegenc, rtpjpegpay, sink]:
             pipeline.add(element)
 
         # filter and link elements
         if not source.link_filtered(videorate, source_caps):
-            print(f"Unable to link source to image/jpeg,width=(int){resolution[0]},height=(int){resolution[1]}")   
+            print(f"Unable to link source to video/x-raw,width=(int){resolution[0]},height=(int){resolution[1]}")   
             return False, None
-        if not videorate.link_filtered(rtpjpegpay, rate_caps):
-            print(f"Unable to link videorate to rtpjpegpay for mjpeg stream")
+        if not videorate.link_filtered(jpegenc, rate_caps):
+            print("Unable to convert video/x-raw to image/jpeg for stream.")
+            return False, None
+        if not jpegenc.link(rtpjpegpay):
+            print(f"Unable to link jpegenc to rtpjpegpay for mjpeg stream")
             return False, None
         if not rtpjpegpay.link_filtered(sink, rtp_caps):
             print("Unable to link rtpjpegpay to sink for mjpeg stream")
