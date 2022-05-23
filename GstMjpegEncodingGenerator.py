@@ -28,6 +28,7 @@ class GstMjpegEncodingGenerator(GstEncodingGenerator):
 
         if Gst.ElementFactory.find("nvjpegenc"):
             # nvaccelerated option exists
+            print("this actually worked??")
             jpegenc = Gst.ElementFactory.make("nvjpegenc")
         else:
             jpegenc = Gst.ElementFactory.make("jpegenc")
