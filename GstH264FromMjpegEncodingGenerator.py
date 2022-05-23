@@ -36,6 +36,7 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
             h264enc.set_property("iframeinterval", int(framerate))
             videorate = Gst.ElementFactory.make("videorate")
             nvjpegdec = Gst.ElementFactory.make("nvjpegdec")
+            nvvidconv = Gst.ElementFactory.make("nvvidconv")
             rtph264pay = Gst.ElementFactory.make("rtph264pay")
             pipeline = Gst.Pipeline.new("h264_stream")
 
@@ -49,8 +50,11 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
             if not videorate.link_filtered(nvjpegdec, rate_caps):
                 print("Unable to convert image/jpeg to video/x-raw(NVMM) for stream.")
                 return False, None
-            if not nvjpegdec.link(h264enc):
-                print("Unable to link nvjpegdec to nvv4l2h264nec for h264 stream")
+            if not nvjpegdec.link(nvvidconv):
+                print("Unable to link nvjpegdec to nvvidconv for h264 stream")
+                return False, None
+            if not nvvidconv.link(h264enc):
+                print("Unable to link nvvidconv to nvv4l2h264nec for h264 stream")
                 return False, None
             if not h264enc.link(rtph264pay):
                 print(f"Unable to link h264enc to rtph264pay for h264 stream")
