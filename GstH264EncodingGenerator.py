@@ -29,33 +29,57 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
         if Gst.ElementFactory.find("nvv4l2h264enc"):
             # nvaccelerated option exists
             h264enc = Gst.ElementFactory.make("nvv4l2h264enc")
-            videorate = Gst.ElementFactory.make("nvvidconv")
+            videorate = Gst.ElementFactory.make("videorate")
+            nvvidconv = Gst.ElementFactory.make("nvvidconv")
+            rtph264pay = Gst.ElementFactory.make("rtph264pay")
+            pipeline = Gst.Pipeline.new("h264_stream")
+
+            for element in [source, videorate, nvvidconv, h264enc, rtph264pay, sink]:
+                pipeline.add(element)
+            
+            # filter and link elements
+            if not source.link_filtered(videorate, source_caps):
+                print(f"Unable to link source to video/x-raw,width=(int){resolution[0]},height=(int){resolution[1]}")   
+                return False, None
+            if not videorate.link_filtered(nvvidconv, rate_caps):
+                print("Unable to convert video/x-raw to video/x-raw(NVMM) for stream.")
+                return False, None
+            if not nvvidconv.link(h264enc):
+                print("Unable to link nvvidconv to nvv4l2h264nec for h264 stream")
+                return False, None
+            if not h264enc.link(rtph264pay):
+                print(f"Unable to link h264enc to rtph264pay for h264 stream")
+                return False, None
+            if not rtph264pay.link_filtered(sink, rtp_caps):
+                print("Unable to link rtph264pay to sink for h264 stream")
+                return False, None
+            
+            return True, pipeline
         else:
             h264enc = Gst.ElementFactory.make("xh264enc")
             videorate = Gst.ElementFactory.make("videorate")
+            rtph264pay = Gst.ElementFactory.make("rtph264pay")
+            pipeline = Gst.Pipeline.new("h264_stream")
 
-        rtph264pay = Gst.ElementFactory.make("rtph264pay")
-        pipeline = Gst.Pipeline.new("mjpeg_stream")
+            # add all elements to the pipeline
+            for element in [source, videorate, h264enc, rtph264pay, sink]:
+                pipeline.add(element)
 
-        # add all elements to the pipeline
-        for element in [source, videorate, h264enc, rtph264pay, sink]:
-            pipeline.add(element)
-
-        # filter and link elements
-        if not source.link_filtered(videorate, source_caps):
-            print(f"Unable to link source to video/x-raw,width=(int){resolution[0]},height=(int){resolution[1]}")   
-            return False, None
-        if not videorate.link_filtered(h264enc, rate_caps):
-            print("Unable to convert video/x-raw to video/x-h264 for stream.")
-            return False, None
-        if not h264enc.link(rtph264pay):
-            print(f"Unable to link h264enc to rtph264pay for h264 stream")
-            return False, None
-        if not rtph264pay.link_filtered(sink, rtp_caps):
-            print("Unable to link rtph264pay to sink for h264 stream")
-            return False, None
-        
-        return True, pipeline
+            # filter and link elements
+            if not source.link_filtered(videorate, source_caps):
+                print(f"Unable to link source to video/x-raw,width=(int){resolution[0]},height=(int){resolution[1]}")   
+                return False, None
+            if not videorate.link_filtered(h264enc, rate_caps):
+                print("Unable to convert video/x-raw to video/x-h264 for stream.")
+                return False, None
+            if not h264enc.link(rtph264pay):
+                print(f"Unable to link h264enc to rtph264pay for h264 stream")
+                return False, None
+            if not rtph264pay.link_filtered(sink, rtp_caps):
+                print("Unable to link rtph264pay to sink for h264 stream")
+                return False, None
+            
+            return True, pipeline
 
     @classmethod
     def get_framerates(cls, caps):
