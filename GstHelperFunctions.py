@@ -6,6 +6,7 @@ from gi.repository import Gst, GObject, GLib
 
 import Camera
 import GstEncodingGenerator, GstRawMjpegEncodingGenerator, GstMjpegEncodingGenerator, GstRawH264EncodingGenerator, GstH264EncodingGenerator
+import GstH264FromMjpegEncodingGenerator
 
 def __get_devices():
     monitor = Gst.DeviceMonitor.new()
