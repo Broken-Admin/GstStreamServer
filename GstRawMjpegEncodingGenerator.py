@@ -54,4 +54,4 @@ class GstRawMjpegEncodingGenerator(GstEncodingGenerator):
 
     @staticmethod
     def get_encoding_name():
-        return "mjpeg"
+        return "raw_mjpeg"
