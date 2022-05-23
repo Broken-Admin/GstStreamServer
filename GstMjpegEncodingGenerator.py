@@ -31,7 +31,8 @@ class GstMjpegEncodingGenerator(GstEncodingGenerator):
         pipeline = Gst.Pipeline.new("mjpeg_stream")
 
         # add all elements to the pipeline
-        pipeline.add(source, videorate, rtpjpegpay, sink)
+        for element in [source, videorate, rtpjpegpay, sink]:
+            pipeline.add(element)
 
         # filter and link elements
         if not source.link_filtered(videorate, source_caps):
