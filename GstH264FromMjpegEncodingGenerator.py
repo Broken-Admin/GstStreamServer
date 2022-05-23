@@ -6,6 +6,9 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
 
     @staticmethod
     def generate_pipeline(source, sink, resolution, framerate):
+        # set camera io mode to 2
+        source.set_property("io-mode", 2)
+
         # get jpegs, filter to correct resolution
         source_caps = Gst.Caps.new_empty()
         source_structure = Gst.Structure.new_from_string(
