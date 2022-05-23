@@ -29,10 +29,11 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
         if Gst.ElementFactory.find("nvv4l2h264enc"):
             # nvaccelerated option exists
             h264enc = Gst.ElementFactory.make("nvv4l2h264enc")
+            videorate = Gst.ElementFactory.make("nvvidconv")
         else:
             h264enc = Gst.ElementFactory.make("xh264enc")
+            videorate = Gst.ElementFactory.make("videorate")
 
-        videorate = Gst.ElementFactory.make("videorate")
         rtph264pay = Gst.ElementFactory.make("rtph264pay")
         pipeline = Gst.Pipeline.new("mjpeg_stream")
 
