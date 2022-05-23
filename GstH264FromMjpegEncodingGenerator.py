@@ -40,7 +40,7 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
             rtph264pay = Gst.ElementFactory.make("rtph264pay")
             pipeline = Gst.Pipeline.new("h264_stream")
 
-            for element in [source, videorate, nvjpegdec, h264enc, rtph264pay, sink]:
+            for element in [source, videorate, nvjpegdec, nvvidconv, h264enc, rtph264pay, sink]:
                 pipeline.add(element)
             
             # filter and link elements
