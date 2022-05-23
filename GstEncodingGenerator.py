@@ -12,9 +12,11 @@ class GstEncodingGenerator():
     def generate_from_caps(cls, caps):
         cap_pattern = Gst.Caps.new_empty_simple(cls.source_encoding)
         matching_caps = caps.intersect(cap_pattern)
+        cap_pattern.unref()
 
         # If no caps match the generator, then return None
         if matching_caps.is_empty():
+            matching_caps.unref()
             return None
         
         num_structures = matching_caps.get_size()
@@ -22,7 +24,7 @@ class GstEncodingGenerator():
         framerates = cls.get_framerates(caps)
 
         for i in range(num_structures):
-            structure = caps.get_structure(i)
+            structure = matching_caps.get_structure(i)
             width = structure.get_int("width")
             height = structure.get_int("height")
 
@@ -31,6 +33,8 @@ class GstEncodingGenerator():
                 print(res)
                 if res not in resolutions:
                     resolutions.append(res)
+
+        matching_caps.unref()
 
         return GstEncoding(
             cls.source_encoding, cls.sink_encoding,
