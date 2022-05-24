@@ -10,6 +10,9 @@ class StreamManager:
         for camera in self.cameras:
             encodings = {}
             for title, encoding in camera.encodings.items():
+                if len(encoding.resolutions == 0):
+                    continue
+                
                 encodings[title] = {
                     "resolutions": encoding.resolutions,
                     "framerates": encoding.framerates
