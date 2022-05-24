@@ -28,7 +28,7 @@ def generate_camera_list():
     
     cameras = []
     for device in devices:
-        print(device.get_property("device.path"))
+        print(device.get_properties().get_string("device.path"))
         caps = device.get_caps()
         encodings = {}
         for generator in encoding_generators:
