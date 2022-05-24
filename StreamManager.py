@@ -35,7 +35,7 @@ class StreamManager:
 
         sink.set_property("host", host)
         sink.set_property("port", int(port))
-        sink.set_propety("sync", False)
+        sink.set_property("sync", False)
 
         pipeline = encodingGenerator.generate_pipeline(source, sink, resolution, framerate)
 
