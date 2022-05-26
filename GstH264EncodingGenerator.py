@@ -61,6 +61,41 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
                 return False, None
             
             return True, pipeline
+        elif Gst.ElementFactory.find("v4l2h264enc"):
+            # nvaccelerated option exists
+            h264enc = Gst.ElementFactory.make("v4l2h264enc")
+            h264enc.set_property("insert-sps-pps", 1)
+            h264enc.set_property("MeasureEncoderLatency", 1)
+            h264enc.set_property("maxperf-enable", 1)
+            h264enc.set_property("bitrate", 500000)
+            h264enc.set_property("preset-level", 1)
+            h264enc.set_property("iframeinterval", int(framerate))
+            videorate = Gst.ElementFactory.make("videorate")
+            vidconv = Gst.ElementFactory.make("videoconvert")
+            rtph264pay = Gst.ElementFactory.make("rtph264pay")
+            pipeline = Gst.Pipeline.new("h264_stream")
+
+            for element in [source, videorate, nvvidconv, h264enc, rtph264pay, sink]:
+                pipeline.add(element)
+            
+            # filter and link elements
+            if not source.link_filtered(videorate, source_caps):
+                print(f"Unable to link source to video/x-raw,width=(int){resolution[0]},height=(int){resolution[1]}")   
+                return False, None
+            if not videorate.link_filtered(nvvidconv, rate_caps):
+                print("Unable to convert video/x-raw to video/x-raw(NVMM) for stream.")
+                return False, None
+            if not vidconv.link(h264enc):
+                print("Unable to link videoconvert to v4l2h264nec for h264 stream")
+                return False, None
+            if not h264enc.link(rtph264pay):
+                print(f"Unable to link h264enc to rtph264pay for h264 stream")
+                return False, None
+            if not rtph264pay.link_filtered(sink, rtp_caps):
+                print("Unable to link rtph264pay to sink for h264 stream")
+                return False, None
+            
+            return True, pipeline
         else:
             h264enc = Gst.ElementFactory.make("xh264enc")
             videorate = Gst.ElementFactory.make("videorate")
