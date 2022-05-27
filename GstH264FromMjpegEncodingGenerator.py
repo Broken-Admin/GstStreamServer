@@ -35,7 +35,7 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
             h264enc.set_property("insert-sps-pps", 1)
             h264enc.set_property("MeasureEncoderLatency", 1)
             h264enc.set_property("maxperf-enable", 1)
-            h264enc.set_property("bitrate", 500000)
+            h264enc.set_property("bitrate", 1000000)
             h264enc.set_property("preset-level", 1)
             h264enc.set_property("iframeinterval", int(framerate))
             videorate = Gst.ElementFactory.make("videorate")
