@@ -6,9 +6,6 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
 
     @staticmethod
     def generate_pipeline(source, sink, resolution, framerate):
-        # set camera io mode to 2
-        source.set_property("io-mode", 2)
-
         # get jpegs, filter to correct resolution
         source_caps = Gst.Caps.new_empty()
         source_structure = Gst.Structure.new_from_string(
@@ -30,6 +27,9 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
         rtp_caps.append_structure(rtp_structure)
 
         if Gst.ElementFactory.find("nvv4l2h264enc"):
+            # set camera io mode to 2
+            source.set_property("io-mode", 2)
+
             # nvaccelerated option exists
             h264enc = Gst.ElementFactory.make("nvv4l2h264enc")
             h264enc.set_property("insert-sps-pps", 1)
@@ -69,21 +69,26 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
             
             return True, pipeline
         else:
-            h264enc = Gst.ElementFactory.make("xh264enc")
+            h264enc = Gst.ElementFactory.make("x264enc")
+            h264enc.set_property("tune", "zerolatency")
             videorate = Gst.ElementFactory.make("videorate")
+            jpegdec = Gst.ElementFactory.make("jpegdec")
             rtph264pay = Gst.ElementFactory.make("rtph264pay")
             pipeline = Gst.Pipeline.new("h264_stream")
 
             # add all elements to the pipeline
-            for element in [source, videorate, h264enc, rtph264pay, sink]:
+            for element in [source, videorate, jpegdec, h264enc, rtph264pay, sink]:
                 pipeline.add(element)
 
             # filter and link elements
             if not source.link_filtered(videorate, source_caps):
                 print(f"Unable to link source to video/x-raw,width=(int){resolution[0]},height=(int){resolution[1]}")   
                 return False, None
-            if not videorate.link_filtered(h264enc, rate_caps):
-                print("Unable to convert video/x-raw to video/x-h264 for stream.")
+            if not videorate.link_filtered(jpegdec, rate_caps):
+                print(f"Unable to filter source to correct framerate.")
+                return False, None
+            if not jpegdec.link(h264enc):
+                print("Unable to convert image/jpeg to video/x-raw for stream.")
                 return False, None
             if not h264enc.link(rtph264pay):
                 print(f"Unable to link h264enc to rtph264pay for h264 stream")

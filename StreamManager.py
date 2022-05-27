@@ -1,4 +1,5 @@
 from GstHelperFunctions import *
+import time
 
 class StreamManager:
     def __init__(self):
@@ -57,7 +58,9 @@ class StreamManager:
     def stop_stream(self, path):
         if path in self.streams:
             pipeline = self.streams.pop(path)
-
+            eosEvent = Gst.Event.new_eos()
+            pipeline.send_event(eosEvent)
+            time.sleep(0.1)
             pipeline.set_state(Gst.State.NULL)
 
             return "Stopped!"
