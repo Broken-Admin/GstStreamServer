@@ -36,8 +36,22 @@ class GstMjpegEncodingGenerator(GstEncodingGenerator):
         rtpjpegpay = Gst.ElementFactory.make("rtpjpegpay")
         pipeline = Gst.Pipeline.new("mjpeg_stream")
 
+        tee = Gst.ElementFactory.make("tee")
+        rtpqueue = Gst.ElementFactory.make("queue")
+        aviqueue = Gst.ElementFactory.make("queue")
+        avimux = Gst.ElementFactory.make("avimux")
+        filesink = Gst.ElementFactory.make("filesink")
+
+        device_path = source.get_property("device")
+        file_directory = f"./recordings{device_path}"
+        os.makedirs(file_directory, exist_ok=True)
+        id = len(os.listdir(file_directory))
+        file_path = f"{file_directory}/{id}.mp4"
+
+        filesink.set_property("location", file_path)
+
         # add all elements to the pipeline
-        for element in [source, videorate, jpegenc, rtpjpegpay, sink]:
+        for element in [source, videorate, jpegenc, tee, rtpqueue, rtpjpegpay, sink, aviqueue, avimux, filesink]:
             pipeline.add(element)
 
         # filter and link elements
@@ -47,11 +61,27 @@ class GstMjpegEncodingGenerator(GstEncodingGenerator):
         if not videorate.link_filtered(jpegenc, rate_caps):
             print("Unable to convert video/x-raw to image/jpeg for stream.")
             return False, None
-        if not jpegenc.link(rtpjpegpay):
-            print(f"Unable to link jpegenc to rtpjpegpay for mjpeg stream")
+        if not jpegenc.link(tee):
+            print(f"Unable to link jpegenc to tee for mjpeg stream")
+            return False, None
+        if not tee.link(rtpqueue):
+            print("Unable to link tee to rtpqueue.")
+            return False, None
+        if not rtpqueue.link(rtpjpegpay):
+            print("Unable to link rtpqueue to rtpjpegpay.")
             return False, None
         if not rtpjpegpay.link_filtered(sink, rtp_caps):
             print("Unable to link rtpjpegpay to sink for mjpeg stream")
+            return False, None
+        
+        if not tee.link(aviqueue):
+            print("Unable to link tee to aviqueue.")
+            return False, None
+        if not aviqueue.link(avimux):
+            print("Unable to link aviqueue to avimux.")
+            return False, None
+        if not avimux.link(filesink):
+            print("Unable to link avimux to filesink.")
             return False, None
         
         return True, pipeline
