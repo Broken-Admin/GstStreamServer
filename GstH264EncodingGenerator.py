@@ -56,7 +56,7 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
 
             pipeline = Gst.Pipeline.new("h264_stream")
 
-            for element in [source, videorate, nvvidconv, h264enc, tee, rtpqueue, rtph264pay, sink]:
+            for element in [source, videorate, nvvidconv, h264enc, tee, rtpqueue, rtph264pay, sink, mp4queue, h264parse, mp4mux, filesink]:
                 pipeline.add(element)
             
             # filter and link elements
