@@ -37,10 +37,26 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
             h264enc.set_property("iframeinterval", int(framerate))
             videorate = Gst.ElementFactory.make("videorate")
             nvvidconv = Gst.ElementFactory.make("nvvidconv")
+            rtpqueue = Gst.ElementFactory.make("queue")
             rtph264pay = Gst.ElementFactory.make("rtph264pay")
+
+            tee = Gst.ElementFactory.make("tee")
+            mp4queue = Gst.ElementFactory.make("queue")
+            h264parse = Gst.ElementFactory.make("h264parse")
+            mp4mux = Gst.ElementFactory.make("mp4mux")
+            filesink = Gst.ElementFactory.make("filesink")
+
+            device_path = source.get_property("device")
+            file_directory = f"./recordings{device_path}"
+            os.makedirs(file_directory, exist_ok=True)
+            id = len(os.listdir(file_directory))
+            file_path = f"{file_directory}/{id}.mp4"
+
+            filesink.set_property("location", file_path)
+
             pipeline = Gst.Pipeline.new("h264_stream")
 
-            for element in [source, videorate, nvvidconv, h264enc, rtph264pay, sink]:
+            for element in [source, videorate, nvvidconv, h264enc, tee, rtpqueue, rtph264pay, sink]:
                 pipeline.add(element)
             
             # filter and link elements
@@ -53,11 +69,30 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
             if not nvvidconv.link(h264enc):
                 print("Unable to link nvvidconv to nvv4l2h264nec for h264 stream")
                 return False, None
-            if not h264enc.link(rtph264pay):
-                print(f"Unable to link h264enc to rtph264pay for h264 stream")
+            if not h264enc.link(tee):
+                print(f"Unable to link h264enc to tee for h264 stream")
+                return False, None
+            if not tee.link(rtpqueue):
+                print("Unable to link tee to rtpqueue.")
+                return False, None
+            if not rtpqueue.link(rtph264pay):
+                print("Unable to link rtpqueue to rtph264pay.")
                 return False, None
             if not rtph264pay.link_filtered(sink, rtp_caps):
                 print("Unable to link rtph264pay to sink for h264 stream")
+                return False, None
+
+            if not tee.link(mp4queue):
+                print("Unable to link tee to mp4queue.")
+                return False, None
+            if not mp4queue.link(h264parse):
+                print("Unable to link mp4queue to h264parse.")
+                return False, None
+            if not h264parse.link(mp4mux):
+                print("Unable to link h264parse to mp4mux.")
+                return False, None
+            if not mp4mux.link(filesink):
+                print("Unable to link mp4mux to filesink.")
                 return False, None
             
             return True, pipeline
@@ -152,6 +187,7 @@ class GstH264EncodingGenerator(GstEncodingGenerator):
             if not rtph264pay.link_filtered(sink, rtp_caps):
                 print("Unable to link rtph264pay to sink for h264 stream")
                 return False, None
+
             if not tee.link(mp4queue):
                 print("Unable to link tee to mp4queue.")
                 return False, None

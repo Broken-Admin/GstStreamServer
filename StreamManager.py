@@ -60,7 +60,7 @@ class StreamManager:
             pipeline = self.streams.pop(path)
             eosEvent = Gst.Event.new_eos()
             pipeline.send_event(eosEvent)
-            time.sleep(0.1)
+            time.sleep(0.25)
             pipeline.set_state(Gst.State.NULL)
 
             return "Stopped!"
