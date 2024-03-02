@@ -5,7 +5,7 @@ gi.require_version("Gst", "1.0")
 from Camera import Camera
 from gi.repository import Gst, GObject, GLib
 from GstEncodingGenerator import GstEncodingGenerator
-from GstRawMjpegEncodingGenerator import GstMjpegEncodingGenerator
+from GstRawMjpegEncodingGenerator import GstRawMjpegEncodingGenerator as GstMjpegEncodingGenerator
 
 def main():
     pipeline = Gst.parse_launch(
